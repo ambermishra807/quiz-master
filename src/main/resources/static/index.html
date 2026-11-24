@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Quiz Master</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#5f6677;--bd:#dfe2ea;--ac:#4f46e5;--acx:#fff;--ok:#15803d;--okb:#e6f6ec;--no:#b91c1c;--nob:#fdeaea;--sk:#b45309;--skb:#fdf3e1;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141b;--card:#1b1e28;--tx:#eceef5;--mu:#9aa1b4;--bd:#2d3141;--ac:#818cf8;--acx:#12141b;--ok:#4ade80;--okb:#12301f;--no:#f87171;--nob:#3a1a1a;--sk:#fbbf24;--skb:#33270f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12141b;--card:#1b1e28;--tx:#eceef5;--mu:#9aa1b4;--bd:#2d3141;--ac:#818cf8;--acx:#12141b;--ok:#4ade80;--okb:#12301f;--no:#f87171;--nob:#3a1a1a;--sk:#fbbf24;--skb:#33270f;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.7rem;margin:.2em 0}h2{font-size:1.2rem;margin:.2em 0 .6em}
+.sub{color:var(--mu);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
+label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 5px}
+input,select{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:11px 16px}
+button.p{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}
+.seg{display:flex;gap:8px}.seg button{flex:1}.seg button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.bar{height:8px;background:var(--bd);border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac);transition:width .3s}
+.chip{font-size:.8rem;padding:3px 10px;border-radius:99px;background:var(--bd);color:var(--mu)}
+.tm{font-variant-numeric:tabular-nums;font-weight:700}.tm.low{color:var(--no)}
+.opt{display:flex;gap:10px;width:100%;text-align:left;margin:8px 0;align-items:flex-start}
+.opt b{min-width:1.4em}
+.opt.ok{background:var(--okb);border-color:var(--ok)}.opt.no{background:var(--nob);border-color:var(--no)}
+.ex{border-radius:10px;padding:12px;margin-top:12px;font-size:.95rem}
+.ex.ok{background:var(--okb)}.ex.no{background:var(--nob)}.ex.sk{background:var(--skb)}
+.ex p{margin:.3em 0}.src{font-size:.85rem;color:var(--mu);margin-top:8px}.src a{color:var(--ac);word-break:break-all}
+.act{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--bd);border-radius:12px;padding:12px;text-align:center}.stat b{display:block;font-size:1.5rem}.stat span{color:var(--mu);font-size:.82rem}
+.sec{margin:10px 0}.sec .bar{margin-top:4px}
+.err{color:var(--no);margin-top:10px}
+.spin{width:34px;height:34px;border:4px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:s 1s linear infinite;margin:14px auto}@keyframes s{to{transform:rotate(360deg)}}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function(){
+"use strict";
+var app=document.getElementById("app");
+var S={diff:"Medium",tmode:"none",sec:2,topic:"",n:10,tval:30,neg:false};
+var Q=null,sample=null,run=null,tick=null;
+
+sample=true;
+
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function clear(){clearInterval(tick);app.textContent=""}
+
+/* ---------- Setup ---------- */
+function render(){
+ clear();
+ app.appendChild(el("h1",0,"AI Quiz Master"));
+ app.appendChild(el("p","sub","Generate a fresh, shuffled quiz on any topic, subject, stream or course."));
+ var c=el("div","card");
+ c.appendChild(el("label",0,"Topic, subject or course"));
+ var ti=el("input");ti.placeholder="e.g. Organic Chemistry, Indian Polity, Data Structures";ti.value=S.topic;ti.maxLength=120;
+ ti.oninput=function(){S.topic=ti.value};c.appendChild(ti);
+ c.appendChild(el("label",0,"Difficulty"));
+ c.appendChild(seg(["Easy","Medium","Hard"],"diff"));
+ var r=el("div","row");
+ var d1=el("div");d1.appendChild(el("label",0,"Total questions"));
+ d1.appendChild(sel([[6,"6"],[9,"9"],[12,"12"],[15,"15"],[20,"20"]],"n",true));
+ var d2=el("div");d2.appendChild(el("label",0,"Sections"));
+ d2.appendChild(sel([[2,"2 sections"],[3,"3 sections"]],"sec",true));
+ r.appendChild(d1);r.appendChild(d2);c.appendChild(r);
+ c.appendChild(el("label",0,"Timer"));
+ c.appendChild(seg([["none","No timer"],["q","Per question"],["all","Whole quiz"]],"tmode",render));
+ if(S.tmode!=="none"){
+  c.appendChild(el("label",0,S.tmode==="q"?"Seconds per question":"Minutes for whole quiz"));
+  var opts=S.tmode==="q"?[[15,"15 s"],[30,"30 s"],[45,"45 s"],[60,"60 s"],[90,"90 s"]]:[[5,"5 min"],[10,"10 min"],[15,"15 min"],[20,"20 min"],[30,"30 min"]];
+  if(!opts.some(function(o){return o[0]===S.tval}))S.tval=opts[1][0];
+  c.appendChild(sel(opts,"tval",true));
+ }
+ var nl=el("label");nl.style.fontWeight="400";var cb=el("input");cb.type="checkbox";cb.style.cssText="width:auto;margin-right:8px";cb.checked=S.neg;cb.onchange=function(){S.neg=cb.checked};
+ nl.appendChild(cb);nl.appendChild(document.createTextNode("Negative marking (−25% of a question’s marks for a wrong answer)"));c.appendChild(nl);
+ var go=el("button","p","Generate quiz");go.style.cssText="width:100%;margin-top:14px";
+ go.onclick=start;c.appendChild(go);
+ if(!sample){var w=el("p","sub","");w.style.marginTop="10px";c.appendChild(w)}
+ app.appendChild(c);
+ var n=el("p","sub","Unanswered questions never get auto-selected. Marks: Section 1 = 1 mark per question, Section 2 = 2, Section 3 = 3.");n.style.fontSize=".85rem";app.appendChild(n);
+}
+function seg(items,key,cb){
+ var d=el("div","seg");
+ items.forEach(function(it){var v=Array.isArray(it)?it[0]:it,l=Array.isArray(it)?it[1]:it;
+  var b=el("button",S[key]===v?"on":"",l);b.onclick=function(){S[key]=v;if(cb)cb();else{[].forEach.call(d.children,function(x){x.className=""});b.className="on"}};d.appendChild(b)});
+ return d;
+}
+function sel(opts,key,num){
+ var s=el("select");opts.forEach(function(o){var op=el("option",0,o[1]);op.value=o[0];if(String(S[key])===String(o[0]))op.selected=true;s.appendChild(op)});
+ s.onchange=function(){S[key]=num?+s.value:s.value};return s;
+}
+
+/* ---------- Generation (one compact call) ---------- */
+async function start(){
+ var topic=S.topic.trim();
+ if(!topic){alert("Please enter a topic.");return}
+ if(!sample){alert("Claude access is not available in this view.");return}
+ clear();app.appendChild(el("h1",0,"Building your quiz…"));
+ var c=el("div","card");c.appendChild(el("div","spin"));c.appendChild(el("p","sub","Generating "+S.n+" "+S.diff.toLowerCase()+" questions on “"+topic+"”."));app.appendChild(c);
+ var per=Math.floor(S.n/S.sec),rem=S.n-per*S.sec;
+ var counts=[];for(var i=0;i<S.sec;i++)counts.push(per+(i<rem?1:0));
+ try{
+  var rs=await fetch("/api/quiz",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:topic,difficulty:S.diff,n:S.n,sections:S.sec})});
+  var d=await rs.json();
+  if(!rs.ok)throw new Error(d.error||"Request failed");
+  if(d&&d.error)throw new Error(d.error);
+  Q=clean(d,counts);
+  attempt();
+ }catch(e){
+  render();var m=el("p","err","Could not generate the quiz: "+((e&&e.message)||"please try again")+(e&&e.code==="rate_limited"?" (rate limited, wait a moment)":""));app.appendChild(m);
+ }
+}
+function clean(d,counts){
+ if(!d||!Array.isArray(d.sections))throw new Error("Unexpected response format");
+ var secs=d.sections.slice(0,3).map(function(s,i){
+  var qs=(s.qs||[]).filter(function(q){return q&&q.q&&Array.isArray(q.a)&&q.a.length===4&&Array.isArray(q.w)&&q.w.length===3&&new Set(q.a).size===4});
+  return{n:String(s.n||"Section "+(i+1)),marks:i+1,qs:qs};
+ }).filter(function(s){return s.qs.length});
+ if(secs.length<2)throw new Error("Not enough valid questions were returned");
+ return secs;
+}
+
+/* ---------- Attempt: shuffle everything, balance correct positions ---------- */
+function attempt(){
+ var all=[];
+ Q.forEach(function(s,si){all=all.concat(s.qs.map(function(q){return{q:q,si:si}}))});
+ // balanced random slot targets for A-D across the whole attempt
+ var pos=[];while(pos.length<all.length)pos=pos.concat(shuf([0,1,2,3]));pos=shuf(pos.slice(0,all.length));
+ var map={};all.forEach(function(it,i){map[i]=pos[i]});
+ var qi=0;
+ var items=[];
+ Q.forEach(function(s,si){
+  shuf(s.qs).forEach(function(q){
+   var idx=all.findIndex(function(x){return x.q===q});
+   var wrong=shuf([1,2,3]);var opts=new Array(4);var cp=map[idx];
+   opts[cp]={t:q.a[0],ok:true,why:q.e};
+   var k=0;for(var j=0;j<4;j++)if(j!==cp){opts[j]={t:q.a[wrong[k]],ok:false,why:q.w[wrong[k]-1]};k++}
+   items.push({q:q,si:si,opts:opts,ans:null,done:false,status:null});
+  });
+ });
+ run={items:items,i:0,deadline:null};
+ if(S.tmode==="all")run.deadline=Date.now()+S.tval*60000;
+ showQ();
+}
+
+/* ---------- Quiz screen ---------- */
+function showQ(){
+ clear();
+ var it=run.items[run.i],n=run.items.length;
+ if(S.tmode==="q"&&!it.done&&!it.dl)it.dl=Date.now()+S.tval*1000;
+ var top=el("div","top");
+ top.appendChild(el("span","chip","Section "+(it.si+1)+": "+Q[it.si].n+" · "+Q[it.si].marks+" mark"+(Q[it.si].marks>1?"s":"")));
+ var tm=el("span","tm");top.appendChild(tm);app.appendChild(top);
+ var b=el("div","bar");var bi=el("i");bi.style.width=(run.i/n*100)+"%";b.appendChild(bi);app.appendChild(b);
+ var pr=el("p","sub","Question "+(run.i+1)+" of "+n);pr.style.margin="6px 0 10px";app.appendChild(pr);
+ var c=el("div","card");c.appendChild(el("h2",0,it.q.q));
+ var ob=[];
+ it.opts.forEach(function(o,j){
+  var bt=el("button","opt");bt.appendChild(el("b",0,"ABCD"[j]+"."));bt.appendChild(el("span",0,o.t));
+  bt.onclick=function(){if(!it.done)answer(it,j)};ob.push(bt);c.appendChild(bt);
+ });
+ var ex=el("div");c.appendChild(ex);
+ var act=el("div","act");
+ var sk=el("button",0,"Skip");sk.onclick=function(){if(!it.done)finishQ(it,null)};
+ var nx=el("button","p",run.i===n-1?"Finish":"Next");nx.onclick=next;
+ act.appendChild(sk);act.appendChild(nx);c.appendChild(act);app.appendChild(c);
+ var ctx={it:it,ob:ob,ex:ex,sk:sk,nx:nx,tm:tm};run.ctx=ctx;
+ if(it.done)paint(ctx);else{nx.classList.add("hide");sk.classList.remove("hide")}
+ startTimer(ctx);
+}
+function answer(it,j){it.ans=j;finishQ(it,j)}
+function finishQ(it,j){
+ it.done=true;it.status=j==null?"u":(it.opts[j].ok?"c":"w");
+ paint(run.ctx);
+}
+function paint(x){
+ var it=x.it;
+ x.ob.forEach(function(b,j){b.disabled=true;b.style.opacity=1;
+  if(it.opts[j].ok)b.className="opt ok";else if(j===it.ans)b.className="opt no"});
+ x.ex.textContent="";
+ var cor=it.opts.findIndex(function(o){return o.ok});
+ var box=el("div","ex "+(it.status==="c"?"ok":it.status==="w"?"no":"sk"));
+ if(it.status==="u")box.appendChild(el("p",0,"Not answered."));
+ if(it.status==="w"){var p=el("p");p.appendChild(el("b",0,"Your answer ("+"ABCD"[it.ans]+"): "));p.appendChild(document.createTextNode(it.opts[it.ans].why));box.appendChild(p)}
+ var p2=el("p");p2.appendChild(el("b",0,(it.status==="c"?"Correct":"Correct answer")+" ("+"ABCD"[cor]+"): "));p2.appendChild(document.createTextNode(it.opts[cor].why));box.appendChild(p2);
+ var s=it.q.s,sr=el("div","src");sr.appendChild(document.createTextNode("Source: "));
+ if(Array.isArray(s)&&typeof s[1]==="string"&&/^https:\/\//.test(s[1])){var a=el("a",0,String(s[0]||s[1]));a.href=s[1];a.target="_blank";a.rel="noopener noreferrer";sr.appendChild(a);
+  sr.appendChild(document.createTextNode(" · AI-suggested reference, please verify."))}
+ else sr.appendChild(document.createTextNode("none available for this question."));
+ box.appendChild(sr);x.ex.appendChild(box);
+ x.nx.classList.remove("hide");x.sk.classList.add("hide");
+ if(S.tmode==="q"){x.tm.textContent=""}
+}
+function next(){
+ if(run.i>=run.items.length-1)return results();
+ run.i++;showQ();
+}
+
+/* ---------- Timer (never selects an answer) ---------- */
+function startTimer(x){
+ var it=x.it;
+ if(S.tmode==="none"||(S.tmode==="q"&&it.done)){x.tm.textContent=S.tmode==="none"?"":"";return}
+ function f(){
+  var dl=S.tmode==="q"?it.dl:run.deadline;
+  var left=Math.max(0,Math.ceil((dl-Date.now())/1000));
+  if(!it.done||S.tmode==="all"){
+   x.tm.textContent="⏱ "+Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+   x.tm.className="tm"+(left<=10?" low":"");
+  }
+  if(left<=0){
+   clearInterval(tick);
+   if(S.tmode==="q"){if(!it.done)finishQ(it,null)}
+   else results(true);
+  }
+ }
+ f();tick=setInterval(f,250);
+}
+
+/* ---------- Results ---------- */
+function results(timeUp){
+ clear();
+ var it=run.items,tot=it.length;
+ var sec=Q.map(function(s){return{n:s.n,m:s.marks,c:0,w:0,u:0,sc:0,max:0,t:0}});
+ var C=0,W=0,U=0,sc=0,mx=0;
+ it.forEach(function(q){var s=sec[q.si];s.t++;s.max+=s.m;mx+=s.m;
+  if(q.status==="c"){C++;s.c++;s.sc+=s.m;sc+=s.m}
+  else if(q.status==="w"){W++;s.w++;if(S.neg){var d=s.m*.25;s.sc-=d;sc-=d}}
+  else{U++;s.u++}});
+ app.appendChild(el("h1",0,timeUp?"Time’s up!":"Quiz complete"));
+ var c=el("div","card");
+ var f=function(x){return Math.round(x*100)/100};
+ var g=el("div","stats");
+ [[f(sc)+" / "+mx,"Score"],[C,"Correct"],[W,"Incorrect"],[U,"Unanswered"],[Math.round(C/tot*100)+"%","Accuracy"]].forEach(function(a){
+  var s=el("div","stat");s.appendChild(el("b",0,String(a[0])));s.appendChild(el("span",0,a[1]));g.appendChild(s)});
+ c.appendChild(g);app.appendChild(c);
+ var c2=el("div","card");c2.appendChild(el("h2",0,"Section-wise performance"));
+ sec.forEach(function(s){
+  var d=el("div","sec");
+  var acc=s.t?Math.round(s.c/s.t*100):0;
+  d.appendChild(el("div",0,s.n+" — "+f(s.sc)+"/"+s.max+" marks · "+s.c+" correct, "+s.w+" wrong, "+s.u+" skipped · "+acc+"%"));
+  var b=el("div","bar"),i=el("i");i.style.width=acc+"%";b.appendChild(i);d.appendChild(b);c2.appendChild(d)});
+ app.appendChild(c2);
+ var a=el("div","act");
+ var r1=el("button","p","Retake (reshuffled)");r1.onclick=attempt;
+ var r2=el("button",0,"New quiz");r2.onclick=function(){Q=null;run=null;render()};
+ a.appendChild(r2);a.appendChild(r1);app.appendChild(a);
+ var n=el("p","sub","Retaking reuses the same questions without another AI call, with new question and option order.");n.style.cssText="font-size:.85rem;margin-top:10px";app.appendChild(n);
+}
+render();
+})();
+</script>
+</body>
+</html>
